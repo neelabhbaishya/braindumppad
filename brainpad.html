@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Dump Pad</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0a0a0a;
+            color: #f5f0e6;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            padding: 1rem 2rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #timer {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 0.2rem;
+        }
+
+        #minimalTag {
+            font-size: 0.75rem;
+            opacity: 0.5;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        textarea {
+            flex-grow: 1;
+            width: 100%;
+            padding: 2rem;
+            background: transparent;
+            color: inherit;
+            font-size: 1.1rem;
+            border: none;
+            resize: none;
+            outline: none;
+        }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 2rem;
+            border-top: 1px solid #333;
+        }
+
+        button {
+            background-color: #f5f0e6;
+            color: #0a0a0a;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.2s ease-in-out;
+        }
+
+        button:hover {
+            background-color: #dcd3be;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div>
+            Brain Dump Pad
+            <div id="timer">Time spent: 0m 0s</div>
+        </div>
+        <div id="minimalTag">A Minimalist Tool</div>
+    </header>
+
+    <textarea id="dumpArea" placeholder="Type whatever’s in your mind... it's your chaos pad."></textarea>
+
+    <footer>
+        <button onclick="clearText()">Clear</button>
+        <button onclick="exportText()">Export</button>
+    </footer>
+
+    <script>
+        const area = document.getElementById('dumpArea');
+        const timerDisplay = document.getElementById('timer');
+
+        // Load previous dump
+        window.onload = () => {
+            area.value = localStorage.getItem('brainDump') || '';
+        };
+
+        // Auto-save
+        area.addEventListener('input', () => {
+            localStorage.setItem('brainDump', area.value);
+        });
+
+        // Clear
+        function clearText() {
+            if (confirm('Clear everything?')) {
+                area.value = '';
+                localStorage.removeItem('brainDump');
+            }
+        }
+
+        // Export
+        function exportText() {
+            const blob = new Blob([area.value], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'brain_dump.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Timer
+        let seconds = 0;
+        setInterval(() => {
+            seconds++;
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            timerDisplay.textContent = `Time spent: ${m}m ${s}s`;
+        }, 1000);
+    </script>
+</body>
+
+</html>

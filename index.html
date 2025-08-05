@@ -1,144 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brain Dump Pad</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas to capture the editor content for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        /* Custom styles for the new theme */
         body {
-            background-color: #0a0a0a;
-            color: #f5f0e6;
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #000000; /* Solid Black */
+            color: #DCD0C0; /* Beige for text */
         }
-
-        header {
-            padding: 1rem 2rem;
-            font-size: 1.5rem;
-            font-weight: 600;
-            border-bottom: 1px solid #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        #timer {
-            font-size: 0.9rem;
-            opacity: 0.7;
-            margin-top: 0.2rem;
-        }
-
-        #minimalTag {
-            font-size: 0.75rem;
-            opacity: 0.5;
-            font-weight: 400;
-            letter-spacing: 1px;
-        }
-
-        textarea {
-            flex-grow: 1;
-            width: 100%;
-            padding: 2rem;
-            background: transparent;
-            color: inherit;
-            font-size: 1.1rem;
-            border: none;
-            resize: none;
+        #editor {
+            font-family: "Menlo", "Consolas", "Monaco", "Liberation Mono", "Lucida Console", monospace;
+            min-height: 60vh;
             outline: none;
+            caret-color: #F5EFE6; /* Lighter Beige for caret */
         }
-
-        footer {
-            display: flex;
-            justify-content: space-between;
-            padding: 1rem 2rem;
-            border-top: 1px solid #333;
+        /* Placeholder styling */
+        #editor:empty:before {
+            content: attr(data-placeholder);
+            color: #5c5c5c; /* Muted beige/gray */
+            pointer-events: none;
         }
-
-        button {
-            background-color: #f5f0e6;
-            color: #0a0a0a;
-            border: none;
-            padding: 0.5rem 1.2rem;
-            font-size: 0.9rem;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: 0.2s ease-in-out;
+        /* Custom button styles for the theme */
+        .btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
         }
-
-        button:hover {
-            background-color: #dcd3be;
+        .btn-primary {
+            background-color: #DCD0C0;
+            color: #000000;
+            border-color: #DCD0C0;
+        }
+        .btn-primary:hover {
+            background-color: #F5EFE6;
+            border-color: #F5EFE6;
+        }
+        .btn-secondary {
+            background-color: #222222;
+            color: #F5EFE6;
+            border-color: #444444;
+        }
+        .btn-secondary:hover {
+            background-color: #333333;
+            border-color: #555555;
+        }
+        .modal-button {
+             background-color: #252525;
+             color: #F5EFE6;
+             border: 1px solid #444;
+             transition: background-color 0.2s;
+        }
+        .modal-button:hover {
+            background-color: #3a3a3a;
         }
     </style>
 </head>
+<body class="flex flex-col min-h-screen">
 
-<body>
-    <header>
-        <div>
-            Brain Dump Pad
-            <div id="timer">Time spent: 0m 0s</div>
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 flex-grow flex flex-col">
+        <!-- Header -->
+        <header class="flex justify-between items-center pb-4 border-b border-gray-800">
+            <div>
+                <h1 class="text-xl font-bold text-[#F5EFE6]">Brain Dump Pad</h1>
+                <p class="text-sm text-gray-500">A Minimalist Tool</p>
+            </div>
+            <div id="time-spent" class="text-sm font-mono text-gray-500">Time spent: 0m 0s</div>
+        </header>
+
+        <!-- Toolbar -->
+        <div id="toolbar" class="flex items-center flex-wrap gap-2 p-2 bg-[#111111] rounded-md my-4">
+            <button data-command="bold" class="px-3 py-1 rounded-md hover:bg-gray-800 font-bold">B</button>
+            <button data-command="italic" class="px-3 py-1 rounded-md hover:bg-gray-800 italic">I</button>
+            <button data-command="underline" class="px-3 py-1 rounded-md hover:bg-gray-800 underline">U</button>
+            <button data-command="strikeThrough" class="px-3 py-1 rounded-md hover:bg-gray-800 line-through">S</button>
+            <div class="border-l border-gray-700 h-6 mx-2"></div>
+            <button data-command="insertUnorderedList" class="px-3 py-1 rounded-md hover:bg-gray-800">List</button>
+            <button data-command="insertOrderedList" class="px-3 py-1 rounded-md hover:bg-gray-800">1. List</button>
         </div>
-        <div id="minimalTag">A Minimalist Tool</div>
-    </header>
 
-    <textarea id="dumpArea" placeholder="Type whatever’s in your mind... it's your chaos pad."></textarea>
+        <!-- Main Text Area -->
+        <main class="flex-grow bg-[#050505] rounded-lg">
+            <div id="editor"
+                 contenteditable="true"
+                 class="w-full h-full p-4 rounded-lg"
+                 data-placeholder="Type whatever's in your mind... it's your chaos pad.">
+            </div>
+        </main>
 
-    <footer>
-        <button onclick="clearText()">Clear</button>
-        <button onclick="exportText()">Export</button>
-    </footer>
+        <!-- Footer -->
+        <footer class="flex justify-end items-center pt-4 mt-4 border-t border-gray-800 gap-4">
+            <button id="clear-btn" class="btn btn-secondary">Clear</button>
+            <button id="export-btn" class="btn btn-primary">Export</button>
+        </footer>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+        <div class="bg-[#111111] border border-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
+            <h2 class="text-xl font-bold mb-6 text-[#F5EFE6]">Export As...</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <button data-format="txt" class="modal-button w-full py-3 rounded-lg font-semibold">Text File (.txt)</button>
+                <button data-format="pdf" class="modal-button w-full py-3 rounded-lg font-semibold">PDF Document (.pdf)</button>
+                <button data-format="doc" class="modal-button w-full py-3 rounded-lg font-semibold">Word Document (.doc)</button>
+            </div>
+            <button id="close-export-modal-btn" class="mt-8 text-gray-500 hover:text-white">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Custom Alert/Confirm Modal -->
+    <div id="alert-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+        <div class="bg-[#111111] border border-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm text-center">
+            <h2 id="ac-title" class="text-xl font-bold mb-4 text-[#F5EFE6]">Are you sure?</h2>
+            <p id="ac-text" class="text-gray-400 mb-6">This action cannot be undone.</p>
+            <div id="ac-buttons" class="flex justify-center gap-4">
+                <button id="ac-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="ac-ok-btn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
-        const area = document.getElementById('dumpArea');
-        const timerDisplay = document.getElementById('timer');
+        document.addEventListener('DOMContentLoaded', () => {
+            // Element references
+            const editor = document.getElementById('editor');
+            const timeSpentEl = document.getElementById('time-spent');
+            const clearBtn = document.getElementById('clear-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const toolbar = document.getElementById('toolbar');
+            
+            // Export Modal elements
+            const exportModal = document.getElementById('export-modal');
+            const closeExportModalBtn = document.getElementById('close-export-modal-btn');
 
-        // Load previous dump
-        window.onload = () => {
-            area.value = localStorage.getItem('brainDump') || '';
-        };
+            // Alert/Confirm Modal elements
+            const acModal = document.getElementById('alert-confirm-modal');
+            const acTitle = document.getElementById('ac-title');
+            const acText = document.getElementById('ac-text');
+            const acCancelBtn = document.getElementById('ac-cancel-btn');
+            const acOkBtn = document.getElementById('ac-ok-btn');
+            const acButtons = document.getElementById('ac-buttons');
+            
+            let seconds = 0;
+            let acResolve = null;
 
-        // Auto-save
-        area.addEventListener('input', () => {
-            localStorage.setItem('brainDump', area.value);
-        });
+            // --- Timer ---
+            setInterval(() => {
+                seconds++;
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                timeSpentEl.textContent = `Time spent: ${mins}m ${secs}s`;
+            }, 1000);
 
-        // Clear
-        function clearText() {
-            if (confirm('Clear everything?')) {
-                area.value = '';
-                localStorage.removeItem('brainDump');
+            // --- Custom Modal Logic ---
+            const showConfirmation = (title, text) => {
+                acTitle.textContent = title;
+                acText.textContent = text;
+                acCancelBtn.style.display = 'inline-flex';
+                acOkBtn.textContent = 'Confirm';
+                acModal.classList.remove('hidden');
+                return new Promise(resolve => {
+                    acResolve = resolve;
+                });
+            };
+            
+            const showAlert = (title, text) => {
+                acTitle.textContent = title;
+                acText.textContent = text;
+                acCancelBtn.style.display = 'none';
+                acOkBtn.textContent = 'OK';
+                acModal.classList.remove('hidden');
+                 return new Promise(resolve => {
+                    acResolve = resolve;
+                });
+            };
+
+            acOkBtn.addEventListener('click', () => {
+                acModal.classList.add('hidden');
+                if (acResolve) acResolve(true);
+            });
+
+            acCancelBtn.addEventListener('click', () => {
+                acModal.classList.add('hidden');
+                if (acResolve) acResolve(false);
+            });
+
+            // --- Toolbar actions ---
+            toolbar.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (button && button.dataset.command) {
+                    e.preventDefault();
+                    document.execCommand(button.dataset.command, false, null);
+                    editor.focus();
+                }
+            });
+
+            // --- Clear Button ---
+            clearBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation('Clear Pad?', 'Are you sure you want to clear the entire pad? This cannot be undone.');
+                if (confirmed) {
+                    editor.innerHTML = '';
+                }
+            });
+
+            // --- Export Modal Controls ---
+            exportBtn.addEventListener('click', () => exportModal.classList.remove('hidden'));
+            closeExportModalBtn.addEventListener('click', () => exportModal.classList.add('hidden'));
+            exportModal.addEventListener('click', (e) => {
+                if (e.target === exportModal) exportModal.classList.add('hidden');
+            });
+
+            // --- Export Logic ---
+            exportModal.addEventListener('click', (e) => {
+                const button = e.target.closest('button[data-format]');
+                if (!button) return;
+
+                const format = button.dataset.format;
+                const originalText = button.textContent;
+                button.textContent = 'Generating...';
+
+                // Use a timeout to allow the UI to update before the heavy export task
+                setTimeout(() => {
+                    try {
+                        switch (format) {
+                            case 'txt': exportAsTxt(); break;
+                            case 'pdf': exportAsPdf(); break;
+                            case 'doc': exportAsDoc(); break;
+                        }
+                    } catch (error) {
+                        console.error(`Export failed for ${format}:`, error);
+                        showAlert('Export Error', `Sorry, could not generate the ${format.toUpperCase()} file.`);
+                    } finally {
+                        button.textContent = originalText;
+                        exportModal.classList.add('hidden');
+                    }
+                }, 50);
+            });
+            
+            function downloadFile(url, filename) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
-        }
 
-        // Export
-        function exportText() {
-            const blob = new Blob([area.value], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'brain_dump.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
+            function exportAsTxt() {
+                const content = editor.innerText;
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                downloadFile(url, 'braindump.txt');
+                URL.revokeObjectURL(url);
+            }
 
-        // Timer
-        let seconds = 0;
-        setInterval(() => {
-            seconds++;
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
-            timerDisplay.textContent = `Time spent: ${m}m ${s}s`;
-        }, 1000);
+            function exportAsDoc() {
+                const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML to Word</title><style>body{background-color: #000; color: #DCD0C0; font-family: sans-serif;}</style></head><body>`;
+                const footer = "</body></html>";
+                const sourceHTML = header + editor.innerHTML + footer;
+                const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+                downloadFile(source, 'braindump.doc');
+            }
+
+            function exportAsPdf() {
+                const { jsPDF } = window.jspdf;
+                html2canvas(editor, {
+                    backgroundColor: '#050505', // Match the editor background
+                    scale: 2
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF({
+                        orientation: 'p',
+                        unit: 'px',
+                        format: [canvas.width, canvas.height]
+                    });
+                    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                    pdf.save('braindump.pdf');
+                }).catch(err => {
+                    console.error("PDF generation failed:", err);
+                    showAlert('PDF Error', "Sorry, there was a problem generating the PDF.");
+                });
+            }
+        });
     </script>
 </body>
-
 </html>
